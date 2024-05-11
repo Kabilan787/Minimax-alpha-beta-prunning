@@ -1,0 +1,172 @@
+import numpy as np
+col = 7
+row = 6
+
+def print_grid(grid):
+    print('\n')
+    print('   1    2    3    4    5    6    7 ')
+    for r in range(6):
+        print('+' + '----+' *7)
+        for c in range(7):
+            if grid[r][c]!=None:
+                print('| '+grid[r][c]+' ', end="")
+            else:
+                print('|    ', end="")
+        print('|')
+    print('+' + '----+' * 7)
+    print('  ')
+
+board = [[None] * 7 for i in range(6)]
+#print_grid(grid)
+
+def check(board,piece):
+    # Checking horizontal locations
+    for c in range(col - 3): 
+        for r in range(row):
+            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
+                return True
+            
+    # Checking vertical locations
+    for c in range(col): 
+        for r in range(row - 3):
+            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece: 
+                return True
+        
+    # Check positively sloped diagonals
+    for c in range(col- 3):
+        for r in range(row - 3):
+            if board[r][c] == piece and board[r + 1][c + 1] == piece and board[r + 2][c + 2] == piece and board[r + 3][c + 3] == piece:
+                return True
+
+    # Check negatively sloped diagonals
+    for c in range(col - 3):
+        for r in range(3, row):
+            if board[r][c] == piece and board[r - 1][c + 1] == piece and board[r - 2][c + 2] == piece and board[r - 3][c + 3] == piece:
+                return True
+
+    return False
+            
+
+
+#print(check(grid,'🔵'))
+
+def grav(grid, col):
+    r = 5
+    while r > -1:
+        if grid[r][col] is None:
+            return r
+        else:
+            r -= 1
+    return -1  # Return -1 if the column is full
+
+def get_valid_loc(board):
+    valid_loc = []
+    for c in range(col):
+        if grav(board, c) > int(-1):  # Ensure that grav function returns a valid value
+            valid_loc.append(c)
+    return valid_loc
+
+def is_terminal_node(board):
+    if check(board,'🔵'):
+        return True
+    elif check(board,'🔴'):
+        return True
+    elif len(get_valid_loc(board)) == 0:
+        return True
+
+def evaluate(board):
+    if check(board,'🔵'):
+        return 1
+    elif check(board,'🔴'):
+        return -1
+    else:
+        return 0
+    
+
+def minimax(board, depth, alpha, beta, maximizing_player):
+    valid_loc = get_valid_loc(board)
+    is_terminal = is_terminal_node(board)
+    if depth == 0 or is_terminal:
+        if is_terminal:
+            if check(board, '🔵'):
+                return None, 100
+            elif check(board, '🔴'):
+                return None, -100
+            else:
+                return None, 0
+        else:  # Depth is 0
+            return None, 0
+
+    if maximizing_player:
+        value = -np.Inf
+        column = np.random.choice(valid_loc)
+        for c in get_valid_loc(board):
+            r = grav(board, c)
+            temp_board = [row[:] for row in board]
+            temp_board[r][c] = '🔵'
+            new_score = minimax(temp_board, depth - 1, alpha, beta, False)[1]
+            if new_score > value:
+                value = new_score
+                column = c
+            alpha = max(alpha, value)
+            if alpha >= beta:
+                break
+        return column, value
+    else:  # minimizing_player
+        value = np.Inf
+        column = np.random.choice(valid_loc)
+        for c in get_valid_loc(board):
+            r = grav(board, c)
+            temp_board = [row[:] for row in board]
+            temp_board[r][c] = '🔴'
+            new_score = minimax(temp_board, depth - 1, alpha, beta, True)[1]
+            if new_score < value:
+                value = new_score
+                column = c
+            beta = min(beta, value)
+            if alpha >= beta:
+                break
+        return column, value
+                    
+def main(grid):
+    print("Welcome to CONNECT FOUR game")
+    print_grid(grid)
+    game_over = False
+    turn = 0
+    
+    while not game_over:
+        if turn == 0:
+            column = int(input("Make your selection (1-7): "))
+            column -= 1
+            if grid[grav(grid,column)][column] == None:
+                grid[grav(grid,column)][column] = '🔵'
+                
+                if check(grid,'🔵'):
+                    print("Player 1 wins!")
+                    game_over = True
+            else:
+                print("Invalid Move")
+                col = int(input("Make your selection (1-7): "))
+            
+            turn += 1
+            print_grid(grid)
+
+        else:
+            column, minimax_score = minimax(board, 5, -np.Inf, np.Inf, True)
+
+            if grid[grav(grid,column)][column] == None:
+                grid[grav(grid,column)][column] = '🔴'
+
+                if check(grid,'🔴'):
+                    print("Player 2 wins!")
+                    game_over = True
+
+                print_grid(grid)
+                turn -= 1
+        if len(get_valid_loc(board)) == 0:
+            print("Tie Game!")
+            game_over = True  
+    
+
+if __name__ == "__main__":
+    main(board)
